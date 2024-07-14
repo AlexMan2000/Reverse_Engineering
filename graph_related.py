@@ -18,6 +18,11 @@ class ProblemType(Enum):
     FindBridges = 5
     FindArticulationPoint = 6
 
+
+class Maze:
+    pass
+
+
 class Graph:
     """
     Simple graph data structure
@@ -308,7 +313,12 @@ class GraphProblemSolver:
 
         return topoList
 
-
+    def find_cut_vertices(self, algo_mode="tarjan"):
+        if algo_mode == "tarjan":
+            res = self.tarJanAlgo(self.graph, type="Cut")
+        else:
+            res = []
+        return res
 
     def find_critical_connections(self, algo_mode="tarjan") -> List[List[int]]:
         if algo_mode == "tarjan":
@@ -317,11 +327,20 @@ class GraphProblemSolver:
             res = []
         return res
 
-    def findAllSCCs(self, algo_mode="tarjan"):
+    def find_all_sccs(self, algo_mode="tarjan"):
         if algo_mode == "tarjan":
             return self.tarJanAlgo(self.graph, type="SCC")
         else:
             return self.kosaraJuAlgo(self.graph)
+
+
+    def find_shortest_path_tree(self):
+        pass
+
+
+    def find_minimum_spanning_tree(self):
+        pass
+
 
     # Tarjan's Algorithm
     def tarJanAlgo(self, graph, type):
@@ -384,14 +403,39 @@ class GraphProblemSolver:
                     ast[w] = False  # backtrack
                 SCCs.append(temp)
 
-        def dfsCut():
-            pass
+        def dfsCut(u, parent, disc, low):
+            nonlocal time
+            nonlocal cuts
+            disc[u] = time
+            low[u] = time
+            time += 1
+            children = 0
+
+            for v in graph[u]:
+                if disc[v] == -1:
+                    # The DFS tree should not contain the node that has been visited before
+                    children += 1
+                    dfsCut(v, u, disc, low)
+                    low[u] = min(low[u], low[v])
+
+                    # Check if the child(doesn't have a parent) has the property 2:
+                    # The back edge cannot reach any of the ancestors of u, then u is the cut vertice
+                    if low[v] >= disc[u] and parent != -1:
+                        cuts.append(u)
+                elif v != parent:
+                    low[u] = min(low[u], disc[v])
+
+            # Check if the current node is a root node and has at least two children
+            if parent == -1 and children > 1:
+                cuts.append(u)
+
 
 
         numNode = len(graph)
         time = 0  # discover time ticker
         SCCs = []
         bridges = []
+        cuts = []
 
         # 1. Initialize
         # 1.1 Discover time and low-link values
@@ -405,24 +449,35 @@ class GraphProblemSolver:
         # 1.3 Real stack data structure
         realStack = []
 
-        # 2. Start the DFS process
+        # 2. Start the DFS process(adding loop to make sure it works for disconnected graphs)
         for i in range(numNode):
             if disc[i] == -1:
                 if type == "SCC":
                     dfsSCCs(i, disc, low, auxStack, realStack)
                 elif type == "Bridge":
                     dfsBridge(i, -1, disc, low)
-
-        print(disc)
-        print(low)
+                elif type == "Cut":
+                    dfsCut(i, -1, disc, low)
 
         if type == "SCC":
             return SCCs
         elif type == "Bridge":
             return bridges
+        elif type == "Cut":
+            return cuts
 
     def kosaraJuAlgo(self, graph):
         pass
+
+
+    def dijkstra(self):
+        pass
+
+    def bellman_ford(self):
+        pass
+
+
+
 
 
 if __name__ == "__main__":
@@ -472,15 +527,18 @@ if __name__ == "__main__":
     testGraphSCC1 = [[1, 0], [0, 2], [2, 1], [0, 3], [3, 4]]
     testGraphSCC2 = [[0, 1], [1, 2], [2, 3]]
     testGraphSCC3 = [[0, 1], [1, 2], [2, 0], [1, 3], [1, 4], [1, 6], [3, 5], [4, 5]]
-    testGraphCC1 = [[0,1],[1,2],[2,0],[1,3]]
+    testGraphCC1 = [[0, 1], [1, 2], [2, 0], [1, 3]]
     testGraphCC2 = [[0, 1], [1, 2], [2, 3]]
 
 
-    g = Graph(testGraphCC1, format="edge", type="uni")
+    testGraphCut1 = [[1,0],[0,2],[2,1],[0,3],[3,4]]
+    testGraphCut2 = [[0, 1], [1, 2], [2, 3]]
+
+
+    g = Graph(testGraphCut1, format="edge", type="uni")
     g.visualize_graph()
     # print(g.data)
-    p1 = GraphProblem(g, ProblemType.EventualSafeStates)
-    p2 = GraphProblem(g, ProblemType.KeysAndRoom)
+    p = GraphProblem(g, ProblemType.EventualSafeStates)
 
-    gs = GraphProblemSolver(p2)
-    print(gs.find_critical_connections())
+    gs = GraphProblemSolver(p)
+    print(gs.find_cut_vertices())
